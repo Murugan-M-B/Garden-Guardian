@@ -1,47 +1,51 @@
+#  Garden Guardian – AI-Powered Tomato Disease Detection App
 
-**Use your preferred IDE**
+##  Overview
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Garden Guardian is a mobile application designed to help farmers and home gardeners detect tomato plant diseases quickly and accurately. By leveraging AI-based image recognition, the app identifies diseases from leaf images and provides actionable treatment and prevention recommendations.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+##  Problem Statement
 
-Follow these steps:
+Tomato diseases can destroy up to **80–100% of crops** if not detected early. Many farmers lack access to timely and affordable expert diagnosis, leading to delayed or incorrect treatments that worsen crop damage.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+##  Solution
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Garden Guardian enables users to simply capture a photo of a diseased tomato plant and receive:
 
-# Step 3: Install the necessary dependencies.
-npm i
+*  Disease identification
+*  Treatment recommendations
+*  Preventive measures
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+##  How It Works
 
-**Edit a file directly in GitHub**
+* Uses a **Convolutional Neural Network (CNN)** trained on tomato leaf datasets
+* Integrated with **TensorFlow Lite** for fast, offline predictions
+* Built using **React Native** for cross-platform support (Android & iOS)
+* Optional **cloud backend** for continuous model improvement and updates
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+##  Features
 
-**Use GitHub Codespaces**
+*  Real-time image-based disease detection
+*  Offline functionality using on-device ML
+*  Cross-platform mobile support
+*  Scalable architecture for future crop/disease expansion
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+##  Tech Stack
 
-## What technologies are used for this project?
+* **Frontend:** React Native
+* **Machine Learning:** CNN, TensorFlow Lite
+* **Backend (optional):** Cloud integration for updates
+* **Languages:** JavaScript, Python
 
-This project is built with:
+##  Future Improvements
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+* Expand to detect multiple crops and diseases
+* Improve model accuracy with larger datasets
+* Add multilingual support for wider accessibility
+* Integrate real-time expert consultation
 
+##  Impact
+
+Garden Guardian aims to reduce crop loss, improve agricultural productivity, and make plant disease diagnosis accessible to everyone—especially small-scale farmers.
+
+---
