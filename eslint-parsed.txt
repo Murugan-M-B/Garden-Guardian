@@ -1,0 +1,6 @@
+E:\Garden Gaurdian Project\src\components\ui\command.tsx
+24:11 An interface declaring no members is equivalent to its supertype.
+E:\Garden Gaurdian Project\src\components\ui\textarea.tsx
+5:18 An interface declaring no members is equivalent to its supertype.
+E:\Garden Gaurdian Project\tailwind.config.ts
+165:12 A `require()` style import is forbidden.
