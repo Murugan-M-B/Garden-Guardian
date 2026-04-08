@@ -1,4 +1,7 @@
-// Image analysis utility for tomato detection
+// Image analysis utility with TensorFlow AI classification
+import * as tf from '@tensorflow/tfjs';
+import * as mobilenet from '@tensorflow-models/mobilenet';
+
 export interface ImageAnalysisResult {
   isValidPlant: boolean;
   confidence: number;
@@ -18,9 +21,43 @@ export const analyzeImageForDisease = (imageUrl: string): Promise<ImageAnalysisR
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => {
+    img.onload = async () => {
       clearTimeout(timeout);
-      // ... rest of the function
+      
+      // Setup AI verification flags
+      let isFormallyAPlant = false;
+      let aiClassifications = '';
+      
+      try {
+        console.log('Loading AI model for strict object verification...');
+        await tf.ready();
+        const model = await mobilenet.load();
+        const predictions = await model.classify(img);
+        aiClassifications = predictions.map(p => p.className.toLowerCase()).join(' ');
+        console.log('TensorFlow AI Predictions:', predictions);
+        
+        // Comprehensive list of nature/plant identifiers
+        const plantKeywords = [
+          'plant', 'leaf', 'flower', 'tree', 'grass', 'garden', 'pot', 'vase', 
+          'broccoli', 'cabbage', 'cauliflower', 'cucumber', 'zucchini', 'squash', 
+          'tomato', 'vegetable', 'fruit', 'bell pepper', 'strawberry', 'apple', 
+          'lemon', 'orange', 'weed', 'vine', 'bush', 'fern', 'moss', 'produce', 
+          'crop', 'soil', 'earth', 'ground', 'mushroom', 'fungus', 'wood', 'plantain', 
+          'daisy', 'rose', 'greenhouse'
+        ];
+        
+        // Extremely powerful check to block dogs, people, cars, furniture, etc.
+        isFormallyAPlant = plantKeywords.some(kw => aiClassifications.includes(kw));
+        
+        if (!isFormallyAPlant) {
+           console.warn("AI definitively confirms this is NOT a plant object. Found:", aiClassifications);
+        }
+      } catch (e) {
+        console.error('AI classification failed, falling back to color logic only', e);
+        // Fallback flag if network issue prevents AI model download
+        isFormallyAPlant = true; 
+      }
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
@@ -73,37 +110,39 @@ export const analyzeImageForDisease = (imageUrl: string): Promise<ImageAnalysisR
         // Classify colors - looking for plant features and disease symptoms
         let colorCategory = 'other';
 
-        // Green tones (healthy or partially healthy leaves/stems)
-        if (hue >= 60 && hue <= 160) {
-          if (saturation > 0.15 && lightness > 0.15 && lightness < 0.8) {
-            colorCategory = 'green';
-          }
-        }
-        // Yellow tones (chlorosis, yellowing from disease/stress)
-        else if (hue >= 35 && hue <= 60) {
-          if (saturation > 0.2 && lightness > 0.3 && lightness < 0.85) {
-            colorCategory = 'yellow';
-          }
-        }
-        // Brown/Dark tones (necrosis, blight, fungus, disease spots)
-        else if (hue >= 10 && hue <= 45) {
-          if (saturation > 0.05 && lightness > 0.05 && lightness < 0.45) {
-            colorCategory = 'brown';
-          }
+        // Acknowledge neutral colors (white, grey, black, sky)
+        if (lightness > 0.85 || saturation < 0.15) {
+          colorCategory = 'neutral';
         }
         else if (lightness < 0.15) {
-          colorCategory = 'dark'; // Severe rot or fungus
+          colorCategory = 'dark'; // Could be necrosis or deep shadow
         }
-        // Red tones (some healthy fruits, but we want to de-emphasize if not diseased)
-        else if ((hue >= 0 && hue <= 15) || (hue >= 345 && hue <= 360)) {
-           if (saturation > 0.4 && lightness > 0.25 && lightness < 0.75) {
-            colorCategory = 'red';
+        // Green tones (healthy or partially healthy leaves/stems)
+        else if (hue >= 60 && hue <= 165) {
+          colorCategory = 'green';
+        }
+        // Yellow tones (chlorosis, yellowing from disease/stress)
+        else if (hue >= 35 && hue < 60) {
+          colorCategory = 'yellow';
+        }
+        // Brown tones (necrosis, blight, fungus, disease spots)
+        else if (hue >= 10 && hue < 35) {
+          if (saturation > 0.2 && lightness < 0.6) {
+            colorCategory = 'brown';
+          } else {
+            colorCategory = 'neutral'; // dusty colors
           }
         }
-
-        if (colorCategory !== 'other') {
-          colorCounts[colorCategory] = (colorCounts[colorCategory] || 0) + 1;
+        // Red tones (some healthy fruits, but de-emphasize if not diseased)
+        else if ((hue >= 0 && hue < 10) || (hue >= 345 && hue <= 360)) {
+           colorCategory = 'red';
         }
+        // Blue/Purple/cyan (skies, jeans, artificial objects)
+        else if (hue > 165 && hue < 345) {
+          colorCategory = 'blue_purple';
+        }
+
+        colorCounts[colorCategory] = (colorCounts[colorCategory] || 0) + 1;
       }
 
       // Calculate percentages
@@ -111,31 +150,48 @@ export const analyzeImageForDisease = (imageUrl: string): Promise<ImageAnalysisR
       const yellowPercentage = (colorCounts.yellow || 0) / totalPixels;
       const brownPercentage = (colorCounts.brown || 0) / totalPixels;
       const darkPercentage = (colorCounts.dark || 0) / totalPixels;
+      const redPercentage = (colorCounts.red || 0) / totalPixels;
+      const bluePurplePercentage = (colorCounts.blue_purple || 0) / totalPixels;
 
-      // Infected plant logic
-      // Must show signs of being a plant
-      const isPlant = greenPercentage > 0.03 || (greenPercentage > 0.01 && yellowPercentage > 0.05);
+      const plantColorsTotal = greenPercentage + yellowPercentage + brownPercentage + redPercentage;
+
+      // 1. MUST literally look like a plant scene overall
+      const hasPlantColors = plantColorsTotal > 0.25 && (greenPercentage > 0.08 || yellowPercentage > 0.12);
+      const isPlantColors = (isFormallyAPlant && plantColorsTotal > 0.1) || hasPlantColors;
       
-      // Must show disease signs (brown necrotic spots, very dark patches, or high chlorosis/yellowing mixed with green)
-      const hasDiseaseSigns = brownPercentage > 0.015 || darkPercentage > 0.03 || (yellowPercentage > 0.05 && greenPercentage > 0.02);
+      // 2. Reject if obviously unnatural (too much artificial blue/purple compared to nature colors)
+      const isNotUnnatural = bluePurplePercentage < 0.15 || plantColorsTotal > (bluePurplePercentage * 2);
+
+      // 3. Must show distinct disease signs but not be purely a brown/dark object
+      const hasDiseaseSigns = (brownPercentage > 0.03 && brownPercentage < 0.45) 
+                           || (darkPercentage > 0.04 && darkPercentage < 0.4) 
+                           || (yellowPercentage > 0.12 && greenPercentage > 0.05);
+
+      // 4. Ultimate Enforcement: if the AI model ran and didn't find any plant-related objects (e.g. it saw a dog) -> rigid rejection
+      const aiEnforcement = aiClassifications === '' || isFormallyAPlant;
 
       // Check for minimum image quality (not too small)
       const minPixels = 10000;
       const hasMinimumSize = totalPixels > minPixels;
 
-      const isValidPlant = isPlant && hasDiseaseSigns && hasMinimumSize;
+      const isValidPlant = aiEnforcement && isPlantColors && isNotUnnatural && hasDiseaseSigns && hasMinimumSize;
       
       // Calculate a confidence score for UI based on how strongly it matches a diseased plant profile
       const plantScore = greenPercentage * 1.5 + yellowPercentage + brownPercentage * 2 + darkPercentage * 1.5;
       const confidence = Math.min(plantScore * 100, 100);
 
-      console.log('Image Analysis:', {
+      console.log('AI + Strict Image Analysis:', {
         totalPixels,
         greenPercentage: (greenPercentage * 100).toFixed(2) + '%',
         yellowPercentage: (yellowPercentage * 100).toFixed(2) + '%',
         brownPercentage: (brownPercentage * 100).toFixed(2) + '%',
         darkPercentage: (darkPercentage * 100).toFixed(2) + '%',
-        isPlant,
+        bluePurplePercentage: (bluePurplePercentage * 100).toFixed(2) + '%',
+        plantColorsTotal: (plantColorsTotal * 100).toFixed(2) + '%',
+        aiEnforcement,
+        aiFoundPlant: isFormallyAPlant,
+        isPlantColors,
+        isNotUnnatural,
         hasDiseaseSigns,
         hasMinimumSize,
         isValidPlant
